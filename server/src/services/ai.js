@@ -39,7 +39,7 @@ export async function generateTasks(projectName, description = "") {
   try {
     const response = await withRetry(() =>
       ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.0-flash",
         contents: `
 Create 5 practical development tasks for this project.
 
@@ -104,7 +104,7 @@ export async function productivity(tasks) {
   try {
     const response = await withRetry(() =>
       ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.0-flash",
         contents: `
 You are a productivity assistant for a project management platform.
 
