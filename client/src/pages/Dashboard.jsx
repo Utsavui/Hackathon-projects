@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Sparkles, Target, CheckCircle2, Clock3, TrendingUp, WandSparkles, RefreshCw, Menu } from "lucide-react";
+import { Plus, Search, Sparkles, Target, CheckCircle2, Clock3, TrendingUp, WandSparkles, RefreshCw, Menu, Brain } from "lucide-react";
 import api from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Sidebar from "../components/Sidebar.jsx";
@@ -19,6 +19,9 @@ export default function Dashboard() {
   const [taskForm,setTaskForm]=useState({title:"",project:"",priority:"medium",dueDate:""});
   const [taskModal,setTaskModal]=useState(false);
   const [sidebarOpen,setSidebarOpen]=useState(false);
+  const [analysis,setAnalysis]=useState(null);
+  const [analyzeLoading,setAnalyzeLoading]=useState(false);
+  const [analyzeError,setAnalyzeError]=useState("");
 
   const load=async()=>{setLoading(true);setError("");try{const [p,t]=await Promise.all([api.get("/projects"),api.get("/tasks")]);setProjects(p.data.projects);setTasks(t.data.tasks)}catch(e){setError(e.response?.data?.message||"Could not load workspace")}finally{setLoading(false)}};
   useEffect(()=>{load()},[]);
@@ -28,6 +31,7 @@ export default function Dashboard() {
 
   const createProject=async e=>{e.preventDefault();await api.post("/projects",form);setForm({name:"",description:"",color:"#7c5cff"});setModal(false);load()};
   const deleteProject=async id=>{if(confirm("Delete this project and its tasks?")){await api.delete(`/projects/${id}`);load()}};
+  const renameProject=async(id,newName)=>{try{await api.put(`/projects/${id}`,{name:newName});load()}catch(e){alert(e.response?.data?.message||"Could not rename project")}};
   const createTask=async e=>{e.preventDefault();await api.post("/tasks",taskForm);setTaskForm({title:"",project:"",priority:"medium",dueDate:""});setTaskModal(false);load()};
   const status=async(id,value)=>{await api.put(`/tasks/${id}`,{status:value});load()};
   const delTask=async id=>{await api.delete(`/tasks/${id}`);load()};
@@ -41,7 +45,7 @@ export default function Dashboard() {
 
   const generate=async()=>{
     const p=projects[0];if(!p)return;
-    setAiLoading(true);setAiError("");setSuggestion("");
+    setAiLoading(true);setAiError("");setSuggestion("");setAnalysis(null);
     try{
       const r=await api.post("/ai/generate-tasks",{projectId:p._id,projectName:p.name,description:p.description});
       setSuggestion(r.data.tasks.map(x=>`${x.title} — ${x.priority}`).join("\n"));
@@ -50,13 +54,24 @@ export default function Dashboard() {
     }finally{setAiLoading(false);}
   };
 
+  const analyze=async()=>{
+    if(tasks.length===0)return;
+    setAnalyzeLoading(true);setAnalyzeError("");setAnalysis(null);setSuggestion("");setAiError("");
+    try{
+      const r=await api.post("/ai/analyze");
+      setAnalysis(r.data.analysis);
+    }catch(err){
+      setAnalyzeError(getAiError(err));
+    }finally{setAnalyzeLoading(false);}
+  };
+
   return <div className="app-shell"><Sidebar isOpen={sidebarOpen} onClose={()=>setSidebarOpen(false)}/><main className="main">
     <header className="topbar">
       <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
         <button className="icon-btn hamburger-btn" onClick={()=>setSidebarOpen(true)} aria-label="Open menu"><Menu size={20}/></button>
         <div><div className="eyebrow">SATURDAY · PRODUCTIVITY</div><h1>Good morning, {user?.name?.split(" ")[0]} <span>✦</span></h1><p>Here's what's happening across your workspace today.</p></div>
       </div>
-      <div className="top-actions"><button className="icon-btn"><RefreshCw size={18}/></button><div className="avatar">{user?.name?.[0]?.toUpperCase()}</div></div>
+      <div className="top-actions"><button className="icon-btn" onClick={load}><RefreshCw size={18}/></button><div className="avatar">{user?.name?.[0]?.toUpperCase()}</div></div>
     </header>
 
     {error && <div className="error-box wide">{error} <button onClick={load}>Retry</button></div>}
@@ -72,7 +87,7 @@ export default function Dashboard() {
       <div className="projects-section">
         <div className="section-head"><div><h2>Projects</h2><span>Your active initiatives</span></div><button className="primary" onClick={()=>setModal(true)}><Plus size={17}/> New project</button></div>
         {loading ? <div className="loading-card"><div className="spinner"/>Loading projects...</div> :
-        projects.length ? <div className="project-grid">{projects.map(p=><ProjectCard key={p._id} project={p} onDelete={deleteProject}/>)}</div> :
+        projects.length ? <div className="project-grid">{projects.map(p=><ProjectCard key={p._id} project={p} onDelete={deleteProject} onRename={renameProject}/>)}</div> :
         <div className="empty-card"><Target size={28}/><h3>No projects yet</h3><p>Create your first project to start tracking progress.</p><button className="primary" onClick={()=>setModal(true)}>Create project</button></div>}
       </div>
 
@@ -83,23 +98,52 @@ export default function Dashboard() {
           <div><b>Nova AI</b><span>Productivity assistant</span></div>
         </div>
         <h3>Make your next move smarter.</h3>
-        <p>Generate practical tasks from a project or get a focused productivity suggestion.</p>
+        <p>Generate tasks for a project, or let AI read your actual tasks and give you a smart analysis.</p>
 
-        <button className="ai-btn" onClick={generate} disabled={aiLoading} style={{opacity: aiLoading ? 0.6 : 1, cursor: aiLoading ? 'not-allowed' : 'pointer'}}>
-          {aiLoading
-            ? <><div className="spinner" style={{width:14,height:14,margin:0}}/> Generating...</>
-            : <><WandSparkles size={16}/> Generate tasks</>
-          }
-        </button>
+        <div style={{display:"flex",flexDirection:"column",gap:"8px",marginTop:"14px"}}>
+          <button className="ai-btn" onClick={generate} disabled={aiLoading||analyzeLoading} style={{opacity:(aiLoading||analyzeLoading)?0.6:1,cursor:(aiLoading||analyzeLoading)?'not-allowed':'pointer'}}>
+            {aiLoading
+              ? <><div className="spinner" style={{width:14,height:14,margin:0}}/> Generating...</>
+              : <><WandSparkles size={16}/> Generate tasks</>
+            }
+          </button>
+          <button className="ai-btn analyze-btn" onClick={analyze} disabled={analyzeLoading||aiLoading||tasks.length===0} title={tasks.length===0?"Add tasks first to analyze":""} style={{opacity:(analyzeLoading||aiLoading||tasks.length===0)?0.6:1,cursor:(analyzeLoading||aiLoading||tasks.length===0)?'not-allowed':'pointer'}}>
+            {analyzeLoading
+              ? <><div className="spinner" style={{width:14,height:14,margin:0}}/> Analyzing...</>
+              : <><Brain size={16}/> Analyze my tasks</>
+            }
+          </button>
+        </div>
 
-        {aiError && (
+        {(aiError||analyzeError) && (
           <div className="ai-error-box">
-            <span>{aiError}</span>
-            <button onClick={generate} className="ai-retry-btn">Retry</button>
+            <span>{aiError||analyzeError}</span>
+            <button onClick={aiError?generate:analyze} className="ai-retry-btn">Retry</button>
           </div>
         )}
 
         {suggestion && !aiError && <pre className="ai-result">{suggestion}</pre>}
+
+        {analysis && !analyzeError && (
+          <div className="ai-analysis">
+            <div className="analysis-item">
+              <span className="analysis-label">📊 Overview</span>
+              <p>{analysis.summary}</p>
+            </div>
+            <div className="analysis-item">
+              <span className="analysis-label">🎯 Do this next</span>
+              <p>{analysis.nextStep}</p>
+            </div>
+            <div className="analysis-item">
+              <span className="analysis-label">⚠️ Risk</span>
+              <p>{analysis.risk}</p>
+            </div>
+            <div className="analysis-item">
+              <span className="analysis-label">💡 Tip</span>
+              <p>{analysis.tip}</p>
+            </div>
+          </div>
+        )}
       </aside>
     </section>
 

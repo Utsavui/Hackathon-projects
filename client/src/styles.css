@@ -120,10 +120,27 @@ nav a, .logout { display: flex; align-items: center; gap: 12px; padding: 11px 12
 .ai-title span { font-size: 10px; color: #777f92; }
 .ai-card h3 { font: 600 19px "Space Grotesk"; margin: 30px 0 8px; position: relative; }
 .ai-card p { color: #868da0; font-size: 11px; position: relative; }
-.ai-btn { width: 100%; background: #29223e; color: #c9bdff; border: 1px solid #3b315d; margin-top: 14px; }
+.ai-btn { width: 100%; background: #29223e; color: #c9bdff; border: 1px solid #3b315d; }
+.analyze-btn { background: #1e2a1e; color: #86c98c; border-color: #2e4a30; }
+.analyze-btn:hover:not(:disabled) { background: #243024; }
 .ai-result { white-space: pre-wrap; color: #aaa1ca; font-size: 10px; margin-top: 14px; line-height: 1.7; }
 .ai-error-box { margin-top: 14px; background: #2a1c1c; border: 1px solid #5c3030; border-radius: 10px; padding: 10px 13px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; color: #f4a6a6; position: relative; }
 .ai-retry-btn { background: #3d2424; border: 1px solid #6b3535; color: #ffb3b3; border-radius: 7px; padding: 5px 10px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+
+/* ─── AI ANALYSIS RESULT ─── */
+.ai-analysis { margin-top: 14px; display: grid; gap: 8px; position: relative; }
+.analysis-item { background: #1a1728; border: 1px solid #2e2845; border-radius: 10px; padding: 10px 12px; }
+.analysis-label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #7b72a8; margin-bottom: 4px; }
+.analysis-item p { color: #cac4e0; font-size: 11px; margin: 0; line-height: 1.6; }
+
+/* ─── PROJECT CARD DROPDOWN ─── */
+.card-menu-wrap { position: relative; }
+.card-dropdown { position: absolute; top: calc(100% + 5px); right: 0; background: #181c28; border: 1px solid #2b3040; border-radius: 10px; padding: 4px; z-index: 10; min-width: 130px; box-shadow: 0 10px 35px #00000055; }
+.card-dd-item { display: flex; align-items: center; gap: 8px; width: 100%; background: transparent; border: 0; color: #b0b8cc; font-size: 12px; padding: 8px 10px; border-radius: 7px; text-align: left; }
+.card-dd-item:hover { background: #222738; color: #fff; }
+.card-dd-item.danger { color: #e07a8a; }
+.card-dd-item.danger:hover { background: #2e1a1f; color: #ff8a9a; }
+
 
 /* ─── TASKS ─── */
 .tasks-section { margin-top: 27px; }
